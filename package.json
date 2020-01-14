@@ -12,7 +12,8 @@
   "author": "Magma Collective",
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "protocol-buffers": "^4.1.0"
+    "protocol-buffers": "^4.1.0",
+    "sodium-native": "^2.4.6"
   },
   "devDependencies": {
     "tap-spec": "^5.0.0",
