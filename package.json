@@ -1,0 +1,22 @@
+{
+  "name": "secret-backup",
+  "version": "1.0.0",
+  "description": "Higher level secret sharing functions",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tape test/**/*.test.js | tap-spec"
+  },
+  "author": "Magma Collective",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "protocol-buffers": "^4.1.0"
+  },
+  "devDependencies": {
+    "tap-spec": "^5.0.0",
+    "tape": "^4.13.0",
+    "tape-plus": "^1.0.0"
+  }
+}
