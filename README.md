@@ -1,4 +1,6 @@
-## Higher level functionality for Dark Crystal key backup
+## Dark Crystal Key Backup Crypto 
+
+Crypto operations and functionality for Dark Crystal key backup
 
 This library adds:
  - Packing secret together with a descriptive label using a protocol buffer.
@@ -6,7 +8,7 @@ This library adds:
  - Deriving encryption keypairs from signing keypairs
  - Encrypting and decrypting a message (asymmetric) to a single recipient
  - One-way encrypting and decrypting a message (asymmetric) to a single recipient, ensuring that the sender cannot also decrypt the message. This is used for encrypting shards.
-     
+
 ## Example 
 
 TODO

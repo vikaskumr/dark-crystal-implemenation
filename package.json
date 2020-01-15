@@ -1,7 +1,7 @@
 {
-  "name": "secret-backup",
+  "name": "key-backup-crypto",
   "version": "1.0.0",
-  "description": "Higher level secret sharing functions",
+  "description": "Crypto operations and other functionality for Dark Crystal key backup",
   "main": "index.js",
   "directories": {
     "test": "test"
