@@ -50,5 +50,38 @@ module.exports = {
     const shard = sodium.sodium_malloc(signedShard.length - sodium.crypto_sign_BYTES)
     const verified = sodium.crypto_sign_open(shard, signedShard, publicKey)
     return verified ? shard : false
+  },
+
+  signingKeypairToEncryptionKeypair (keypair) {
+    const curveKeypair = {
+      publicKey: sodium.sodium_malloc(sodium.crypto_box_PUBLICKEYBYTES),
+      secretKey: sodium.sodium_malloc(sodium.crypto_box_SECRETKEYBYTES)
+    }
+    sodium.crypto_sign_ed25519_pk_to_curve25519(curveKeypair.publicKey, keypair.publicKey)
+    sodium.crypto_sign_ed25519_sk_to_curve25519(curveKeypair.secretKey, keypair.secretKey)
+    return curveKeypair
+  },
+
+  box (message, publicKey, secretKey) {
+    const cipherText = sodium.sodium_malloc(message.length + sodium.crypto_box_MACBYTES)
+    const nonce = randomBytes(sodium.crypto_box_NONCEBYTES)
+    sodium.crypto_box_easy(cipherText, message, nonce, publicKey, secretKey)
+    return Buffer.concat([nonce, cipherText])
+  },
+
+  unbox (cipherText, publicKey, secretKey) {
+    assert(Buffer.isBuffer(cipherText), 'cipherText must be a buffer')
+    assert(cipherText.length > sodium.crypto_box_MACBYTES, 'cipherText too short')
+    const nonce = cipherText.slice(0, sodium.crypto_secretbox_NONCEBYTES)
+    const messageWithMAC = cipherText.slice(sodium.crypto_secretbox_NONCEBYTES)
+    const message = sodium.sodium_malloc(messageWithMAC.length - sodium.crypto_secretbox_MACBYTES)
+    const decrypted = sodium.crypto_box_open_easy(message, messageWithMAC, nonce, publicKey, secretKey)
+    return decrypted ? message : false
   }
+}
+
+function randomBytes (n) {
+  const b = sodium.sodium_malloc(n)
+  sodium.randombytes_buf(b)
+  return b
 }
