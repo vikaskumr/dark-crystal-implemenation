@@ -18,17 +18,30 @@ TODO
 ```js
 const packed = packLabel(secret, label)
 ```
+
+Pack a secret together with a descriptive label, using a protocol buffer.
+- `secret` should be a buffer or a string.
+- `label` is an optional argument which if given should be a string containing some useful contextual information about the secret.
+- returns a buffer
+
 ```js
 const { secret, label } = unpackLabel(packed)
 ```
+- `packed` is a buffer created with `packLabel`
+- returns an object with properties `secret` and `label`, which will be a buffer and a string respectively. If no label was given, `label` will be the empty string.
 
 ```js
 const keypair = signingKeypair()
 ```
 
+Generate a keypair for signing.
+- Returns a keypair object with properties `publicKey`, `secretKey` which are buffers.
+
 ```js
 const signedShard = signShard(shard, keypair)
 ```
+Sign a message, and pack the signature together with the message.
+
 - `shard` is a buffer
 - `keypair` is either a keypair object or a secret key given as a buffer.
 - returns a buffer, which contains both the shard and the signature.
@@ -36,6 +49,9 @@ const signedShard = signShard(shard, keypair)
 ```js
 const verifiedShard = openShard (signedShard, publicKey)
 ```
+
+Verify a signed message, and if valid return the message without the signature.
+
 - `publicKey` is a buffer
 - `signedShard` is a buffer
 - returns either a buffer with the verified shard, or false if the shard could not be verified
@@ -44,7 +60,7 @@ const verifiedShard = openShard (signedShard, publicKey)
 const boxKeypair = encryptionKeypair()
 ```
 Generates a diffie-hellman asymmetric encryption keypair.
-Returns an object with properties `publicKey`, `secretKey`, both of which are buffers.
+- Returns an object with properties `publicKey`, `secretKey`, both of which are buffers.
 
 ```js
 const boxKeypair = signingKeypairToEncryptionKeypair(keypair)
