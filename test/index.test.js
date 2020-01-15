@@ -50,29 +50,72 @@ describe('sign and verify', (context) => {
 describe('box and unbox', (context) => {
   context('basic', (assert, next) => {
     const shard = Buffer.from(secret) // TODO: real shard
+
     const sender = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
     const recipient = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
     assert.ok(Buffer.isBuffer(sender.publicKey), 'public key is a buffer')
     assert.ok(Buffer.isBuffer(sender.secretKey), 'secret key is a buffer')
+
     const cipherText = s.box(shard, recipient.publicKey, sender.secretKey)
     assert.ok(Buffer.isBuffer(cipherText), 'ciphertext is a buffer')
+
     const unboxed = s.unbox(cipherText, sender.publicKey, recipient.secretKey)
     assert.ok(unboxed, 'Decryption successful')
     assert.equal(unboxed.toString('hex'), shard.toString('hex'), 'Decrypted message correct')
+
+    const unboxed2 = s.unbox(cipherText, recipient.publicKey, sender.secretKey)
+    assert.ok(unboxed2, 'Sender can also decrypt message')
+    assert.equal(unboxed2.toString('hex'), shard.toString('hex'), 'Decrypted message correct')
     next()
   })
 
   context('bad ciphertext', (assert, next) => {
     const shard = Buffer.from(secret) // TODO: real shard
+
     const sender = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
     const recipient = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
     assert.ok(Buffer.isBuffer(sender.publicKey), 'public key is a buffer')
     assert.ok(Buffer.isBuffer(sender.secretKey), 'secret key is a buffer')
+
     const cipherText = s.box(shard, recipient.publicKey, sender.secretKey)
     assert.ok(Buffer.isBuffer(cipherText), 'ciphertext is a buffer')
     cipherText[0] = cipherText[0] === 1 ? 2 : 1
+
     const unboxed = s.unbox(cipherText, sender.publicKey, recipient.secretKey)
     assert.notOk(unboxed, 'Decryption fails')
+    next()
+  })
+})
+
+describe('one-way box and unbox', (context) => {
+  context('basic', (assert, next) => {
+    const shard = Buffer.from(secret) // TODO: real shard
+    const sender = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
+    const recipient = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
+
+    const cipherText = s.oneWayBox(shard, recipient.publicKey)
+    assert.ok(Buffer.isBuffer(cipherText), 'ciphertext is a buffer')
+
+    const unboxed = s.oneWayUnbox(cipherText, recipient.secretKey)
+    assert.ok(unboxed, 'Decryption successful')
+    assert.equal(unboxed.toString('hex'), shard.toString('hex'), 'Decrypted message correct')
+
+    const unboxed2 = s.oneWayUnbox(cipherText, sender.secretKey)
+    assert.notOk(unboxed2, 'Sender cannot also decrypt message')
+    next()
+  })
+
+  context('bad ciphertext', (assert, next) => {
+    const shard = Buffer.from(secret) // TODO: real shard
+    const recipient = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
+
+    const cipherText = s.oneWayBox(shard, recipient.publicKey)
+    assert.ok(Buffer.isBuffer(cipherText), 'ciphertext is a buffer')
+    cipherText[0] = cipherText[0] === 1 ? 2 : 1
+
+    const unboxed = s.oneWayUnbox(cipherText, recipient.secretKey)
+    assert.notOk(unboxed, 'Decryption not successful')
+
     next()
   })
 })
