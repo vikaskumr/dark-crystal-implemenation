@@ -52,6 +52,15 @@ module.exports = {
     return verified ? shard : false
   },
 
+  encryptionKeypair () {
+    const keypair = {
+      publicKey: sodium.sodium_malloc(sodium.crypto_box_PUBLICKEYBYTES),
+      secretKey: sodium.sodium_malloc(sodium.crypto_box_SECRETKEYBYTES)
+    }
+    sodium.crypto_box_keypair(keypair.publicKey, keypair.secretKey)
+    return keypair
+  },
+
   signingKeypairToEncryptionKeypair (keypair) {
     const curveKeypair = {
       publicKey: sodium.sodium_malloc(sodium.crypto_box_PUBLICKEYBYTES),
@@ -71,11 +80,32 @@ module.exports = {
 
   unbox (cipherText, publicKey, secretKey) {
     assert(Buffer.isBuffer(cipherText), 'cipherText must be a buffer')
-    assert(cipherText.length > sodium.crypto_box_MACBYTES, 'cipherText too short')
-    const nonce = cipherText.slice(0, sodium.crypto_secretbox_NONCEBYTES)
-    const messageWithMAC = cipherText.slice(sodium.crypto_secretbox_NONCEBYTES)
-    const message = sodium.sodium_malloc(messageWithMAC.length - sodium.crypto_secretbox_MACBYTES)
+    assert(cipherText.length > sodium.crypto_box_MACBYTES + sodium.crypto_box_NONCEBYTES, 'cipherText too short')
+    const nonce = cipherText.slice(0, sodium.crypto_box_NONCEBYTES)
+    const messageWithMAC = cipherText.slice(sodium.crypto_box_NONCEBYTES)
+    const message = sodium.sodium_malloc(messageWithMAC.length - sodium.crypto_box_MACBYTES)
     const decrypted = sodium.crypto_box_open_easy(message, messageWithMAC, nonce, publicKey, secretKey)
+    return decrypted ? message : false
+  },
+
+  oneWayBox (message, publicKey) {
+    const ephemeral = this.encryptionKeypair()
+    const nonce = randomBytes(sodium.crypto_box_NONCEBYTES)
+    const cipherText = sodium.sodium_malloc(message.length + sodium.crypto_box_MACBYTES)
+    sodium.crypto_box_easy(cipherText, message, nonce, publicKey, ephemeral.secretKey)
+    zero(ephemeral.secretKey)
+    return Buffer.concat([nonce, ephemeral.publicKey, cipherText])
+  },
+
+  oneWayUnbox (cipherText, secretKey) {
+    assert(Buffer.isBuffer(cipherText), 'cipherText must be a buffer')
+    assert(cipherText.length > sodium.crypto_box_MACBYTES + sodium.crypto_box_PUBLICKEYBYTES + sodium.crypto_box_NONCEBYTES, 'cipherText too short')
+
+    const nonce = cipherText.slice(0, sodium.crypto_box_NONCEBYTES)
+    const ephemeralPublicKey = cipherText.slice(sodium.crypto_box_NONCEBYTES, sodium.crypto_box_NONCEBYTES + sodium.crypto_box_PUBLICKEYBYTES)
+    const messageWithMAC = cipherText.slice(sodium.crypto_box_NONCEBYTES + sodium.crypto_box_PUBLICKEYBYTES)
+    const message = sodium.sodium_malloc(messageWithMAC.length - sodium.crypto_box_MACBYTES)
+    const decrypted = sodium.crypto_box_open_easy(message, messageWithMAC, nonce, ephemeralPublicKey, secretKey)
     return decrypted ? message : false
   }
 }
