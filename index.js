@@ -29,6 +29,10 @@ module.exports = {
     return { publicKey, secretKey }
   },
 
+  signShards (shards, keypair) {
+    return shards.map(shard => this.signShard(shard, keypair))
+  },
+
   signShard (shard, keypair) {
     const secretKey = typeof keypair === 'object' ? keypair.secretKey : keypair
     assert(Buffer.isBuffer(secretKey), 'secret key must be a buffer')
@@ -40,6 +44,10 @@ module.exports = {
     sodium.crypto_sign(signedShard, shard, secretKey)
     zero(secretKey)
     return signedShard
+  },
+
+  openShards (signedShards, publicKey) {
+    return signedShards.map(shard => this.openShard(shard, publicKey))
   },
 
   openShard (signedShard, publicKey) {
@@ -73,7 +81,7 @@ module.exports = {
 
   box (message, publicKey, secretKey) {
     const cipherText = sodium.sodium_malloc(message.length + sodium.crypto_box_MACBYTES)
-    const nonce = randomBytes(sodium.crypto_box_NONCEBYTES)
+    const nonce = this.randomBytes(sodium.crypto_box_NONCEBYTES)
     sodium.crypto_box_easy(cipherText, message, nonce, publicKey, secretKey)
     return Buffer.concat([nonce, cipherText])
   },
@@ -90,7 +98,7 @@ module.exports = {
 
   oneWayBox (message, publicKey) {
     const ephemeral = this.encryptionKeypair()
-    const nonce = randomBytes(sodium.crypto_box_NONCEBYTES)
+    const nonce = this.randomBytes(sodium.crypto_box_NONCEBYTES)
     const cipherText = sodium.sodium_malloc(message.length + sodium.crypto_box_MACBYTES)
     sodium.crypto_box_easy(cipherText, message, nonce, publicKey, ephemeral.secretKey)
     zero(ephemeral.secretKey)
@@ -107,11 +115,12 @@ module.exports = {
     const message = sodium.sodium_malloc(messageWithMAC.length - sodium.crypto_box_MACBYTES)
     const decrypted = sodium.crypto_box_open_easy(message, messageWithMAC, nonce, ephemeralPublicKey, secretKey)
     return decrypted ? message : false
+  },
+
+  randomBytes (n) {
+    const b = sodium.sodium_malloc(n)
+    sodium.randombytes_buf(b)
+    return b
   }
 }
 
-function randomBytes (n) {
-  const b = sodium.sodium_malloc(n)
-  sodium.randombytes_buf(b)
-  return b
-}
