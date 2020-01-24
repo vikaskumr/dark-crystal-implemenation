@@ -11,7 +11,7 @@ This library adds:
 
 ## Example 
 
-See [example.js]('./example.js')
+See [example.js](./example.js)
 
 ## API
 
