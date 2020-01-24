@@ -11,7 +11,7 @@ This library adds:
 
 ## Example 
 
-TODO
+See [example.js]('./example.js')
 
 ## API
 
