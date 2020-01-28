@@ -121,6 +121,11 @@ module.exports = {
     const b = sodium.sodium_malloc(n)
     sodium.randombytes_buf(b)
     return b
+  },
+
+  genericHash (message, key) {
+    const hash = sodium.sodium_malloc(sodium.crypto_generichash_BYTES)
+    sodium.crypto_generichash(hash, message, key)
+    return hash
   }
 }
-
