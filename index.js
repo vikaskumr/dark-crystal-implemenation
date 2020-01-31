@@ -2,6 +2,7 @@ const sodium = require('sodium-native')
 const zero = sodium.sodium_memzero
 const protobuf = require('protocol-buffers')
 const assert = require('assert')
+const privateBox = require('private-box')
 
 const messages = protobuf(`
 message Secret {
@@ -22,7 +23,7 @@ module.exports = {
     return messages.Secret.decode(packedSecret)
   },
 
-  signingKeypair () {
+  keypair () {
     const publicKey = sodium.sodium_malloc(sodium.crypto_sign_PUBLICKEYBYTES)
     const secretKey = sodium.sodium_malloc(sodium.crypto_sign_SECRETKEYBYTES)
     sodium.crypto_sign_keypair(publicKey, secretKey)
@@ -42,7 +43,6 @@ module.exports = {
     // TODO: optionally use crypto_sign_detached and store the signature separately
     const signedShard = sodium.sodium_malloc(sodium.crypto_sign_BYTES + shard.length)
     sodium.crypto_sign(signedShard, shard, secretKey)
-    zero(secretKey)
     return signedShard
   },
 
@@ -80,32 +80,66 @@ module.exports = {
   },
 
   box (message, publicKey, secretKey) {
+    const curvePublicKey = sodium.sodium_malloc(sodium.crypto_box_PUBLICKEYBYTES)
+    const curveSecretKey = sodium.sodium_malloc(sodium.crypto_box_SECRETKEYBYTES)
+    sodium.crypto_sign_ed25519_pk_to_curve25519(curvePublicKey, publicKey)
+    sodium.crypto_sign_ed25519_sk_to_curve25519(curveSecretKey, secretKey)
+
     const cipherText = sodium.sodium_malloc(message.length + sodium.crypto_box_MACBYTES)
     const nonce = this.randomBytes(sodium.crypto_box_NONCEBYTES)
-    sodium.crypto_box_easy(cipherText, message, nonce, publicKey, secretKey)
+    sodium.crypto_box_easy(cipherText, message, nonce, curvePublicKey, curveSecretKey)
     return Buffer.concat([nonce, cipherText])
   },
 
+  privateBox (message, publicKeys) {
+    if (Buffer.isBuffer(publicKeys)) publicKeys = [publicKeys]
+    assert(publicKeys.length <= 2, 'Maximum two public keys allowed')
+    const curvePublicKeys = []
+    publicKeys.forEach((pk) => {
+      const curvePublicKey = sodium.sodium_malloc(sodium.crypto_box_PUBLICKEYBYTES)
+      sodium.crypto_sign_ed25519_pk_to_curve25519(curvePublicKey, pk)
+      curvePublicKeys.push(curvePublicKey)
+    })
+    return privateBox.encrypt(message, curvePublicKeys)
+  },
+
+  privateUnbox (cipherText, secretKey) {
+    const curveSecretKey = sodium.sodium_malloc(sodium.crypto_box_SECRETKEYBYTES)
+    sodium.crypto_sign_ed25519_sk_to_curve25519(curveSecretKey, secretKey)
+    return privateBox.decrypt(cipherText, curveSecretKey)
+  },
+
   unbox (cipherText, publicKey, secretKey) {
+    const curvePublicKey = sodium.sodium_malloc(sodium.crypto_box_PUBLICKEYBYTES)
+    const curveSecretKey = sodium.sodium_malloc(sodium.crypto_box_SECRETKEYBYTES)
+    sodium.crypto_sign_ed25519_pk_to_curve25519(curvePublicKey, publicKey)
+    sodium.crypto_sign_ed25519_sk_to_curve25519(curveSecretKey, secretKey)
+
     assert(Buffer.isBuffer(cipherText), 'cipherText must be a buffer')
     assert(cipherText.length > sodium.crypto_box_MACBYTES + sodium.crypto_box_NONCEBYTES, 'cipherText too short')
     const nonce = cipherText.slice(0, sodium.crypto_box_NONCEBYTES)
     const messageWithMAC = cipherText.slice(sodium.crypto_box_NONCEBYTES)
     const message = sodium.sodium_malloc(messageWithMAC.length - sodium.crypto_box_MACBYTES)
-    const decrypted = sodium.crypto_box_open_easy(message, messageWithMAC, nonce, publicKey, secretKey)
+    const decrypted = sodium.crypto_box_open_easy(message, messageWithMAC, nonce, curvePublicKey, curveSecretKey)
     return decrypted ? message : false
   },
 
   oneWayBox (message, publicKey) {
+    const curvePublicKey = sodium.sodium_malloc(sodium.crypto_box_PUBLICKEYBYTES)
+    sodium.crypto_sign_ed25519_pk_to_curve25519(curvePublicKey, publicKey)
+
     const ephemeral = this.encryptionKeypair()
     const nonce = this.randomBytes(sodium.crypto_box_NONCEBYTES)
     const cipherText = sodium.sodium_malloc(message.length + sodium.crypto_box_MACBYTES)
-    sodium.crypto_box_easy(cipherText, message, nonce, publicKey, ephemeral.secretKey)
+    sodium.crypto_box_easy(cipherText, message, nonce, curvePublicKey, ephemeral.secretKey)
     zero(ephemeral.secretKey)
     return Buffer.concat([nonce, ephemeral.publicKey, cipherText])
   },
 
   oneWayUnbox (cipherText, secretKey) {
+    const curveSecretKey = sodium.sodium_malloc(sodium.crypto_box_SECRETKEYBYTES)
+    sodium.crypto_sign_ed25519_sk_to_curve25519(curveSecretKey, secretKey)
+
     assert(Buffer.isBuffer(cipherText), 'cipherText must be a buffer')
     assert(cipherText.length > sodium.crypto_box_MACBYTES + sodium.crypto_box_PUBLICKEYBYTES + sodium.crypto_box_NONCEBYTES, 'cipherText too short')
 
@@ -113,7 +147,7 @@ module.exports = {
     const ephemeralPublicKey = cipherText.slice(sodium.crypto_box_NONCEBYTES, sodium.crypto_box_NONCEBYTES + sodium.crypto_box_PUBLICKEYBYTES)
     const messageWithMAC = cipherText.slice(sodium.crypto_box_NONCEBYTES + sodium.crypto_box_PUBLICKEYBYTES)
     const message = sodium.sodium_malloc(messageWithMAC.length - sodium.crypto_box_MACBYTES)
-    const decrypted = sodium.crypto_box_open_easy(message, messageWithMAC, nonce, ephemeralPublicKey, secretKey)
+    const decrypted = sodium.crypto_box_open_easy(message, messageWithMAC, nonce, ephemeralPublicKey, curveSecretKey)
     return decrypted ? message : false
   },
 
