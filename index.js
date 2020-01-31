@@ -100,13 +100,13 @@ module.exports = {
       sodium.crypto_sign_ed25519_pk_to_curve25519(curvePublicKey, pk)
       curvePublicKeys.push(curvePublicKey)
     })
-    return privateBox.encrypt(message, curvePublicKeys)
+    return privateBox.encrypt(message, curvePublicKeys, 2)
   },
 
   privateUnbox (cipherText, secretKey) {
     const curveSecretKey = sodium.sodium_malloc(sodium.crypto_box_SECRETKEYBYTES)
     sodium.crypto_sign_ed25519_sk_to_curve25519(curveSecretKey, secretKey)
-    return privateBox.decrypt(cipherText, curveSecretKey)
+    return privateBox.decrypt(cipherText, curveSecretKey, 2)
   },
 
   unbox (cipherText, publicKey, secretKey) {
