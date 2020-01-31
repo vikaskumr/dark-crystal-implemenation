@@ -26,7 +26,7 @@ describe('pack and unpack', (context) => {
 describe('sign and verify', (context) => {
   context('basic', (assert, next) => {
     const shard = Buffer.from(secret) // TODO: real shard
-    const keypair = s.signingKeypair()
+    const keypair = s.keypair()
     const signedShard = s.signShard(shard, keypair)
     assert.ok(Buffer.isBuffer(signedShard), 'signed shard is a buffer')
     const verifiedShard = s.openShard(signedShard, keypair.publicKey)
@@ -37,7 +37,7 @@ describe('sign and verify', (context) => {
 
   context('bad public key', (assert, next) => {
     const shard = Buffer.from(secret) // TODO: real shard
-    const keypair = s.signingKeypair()
+    const keypair = s.keypair()
     const signedShard = s.signShard(shard, keypair)
     assert.ok(Buffer.isBuffer(signedShard), 'signed shard is a buffer')
     keypair.publicKey[0] = keypair.publicKey[0] === 1 ? 2 : 1
@@ -51,8 +51,8 @@ describe('box and unbox', (context) => {
   context('basic', (assert, next) => {
     const shard = Buffer.from(secret) // TODO: real shard
 
-    const sender = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
-    const recipient = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
+    const sender = s.keypair()
+    const recipient = s.keypair()
     assert.ok(Buffer.isBuffer(sender.publicKey), 'public key is a buffer')
     assert.ok(Buffer.isBuffer(sender.secretKey), 'secret key is a buffer')
 
@@ -72,8 +72,8 @@ describe('box and unbox', (context) => {
   context('bad ciphertext', (assert, next) => {
     const shard = Buffer.from(secret) // TODO: real shard
 
-    const sender = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
-    const recipient = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
+    const sender = s.keypair()
+    const recipient = s.keypair()
     assert.ok(Buffer.isBuffer(sender.publicKey), 'public key is a buffer')
     assert.ok(Buffer.isBuffer(sender.secretKey), 'secret key is a buffer')
 
@@ -87,11 +87,30 @@ describe('box and unbox', (context) => {
   })
 })
 
+describe('privatebox box and unbox', (context) => {
+  context('basic', (assert, next) => {
+    const shard = Buffer.from(secret) // TODO: real shard
+    const sender = s.keypair()
+    const recipient = s.keypair()
+
+    const cipherText = s.privateBox(shard, [recipient.publicKey])
+    assert.ok(Buffer.isBuffer(cipherText), 'ciphertext is a buffer')
+
+    const unboxed = s.privateUnbox(cipherText, recipient.secretKey)
+    assert.ok(unboxed, 'Decryption successful')
+    assert.equal(unboxed.toString('hex'), shard.toString('hex'), 'Decrypted message correct')
+
+    const unboxed2 = s.oneWayUnbox(cipherText, sender.secretKey)
+    assert.notOk(unboxed2, 'Sender cannot also decrypt message')
+    next()
+  })
+})
+
 describe('one-way box and unbox', (context) => {
   context('basic', (assert, next) => {
     const shard = Buffer.from(secret) // TODO: real shard
-    const sender = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
-    const recipient = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
+    const sender = s.keypair()
+    const recipient = s.keypair()
 
     const cipherText = s.oneWayBox(shard, recipient.publicKey)
     assert.ok(Buffer.isBuffer(cipherText), 'ciphertext is a buffer')
@@ -107,7 +126,7 @@ describe('one-way box and unbox', (context) => {
 
   context('bad ciphertext', (assert, next) => {
     const shard = Buffer.from(secret) // TODO: real shard
-    const recipient = s.signingKeypairToEncryptionKeypair(s.signingKeypair())
+    const recipient = s.keypair()
 
     const cipherText = s.oneWayBox(shard, recipient.publicKey)
     assert.ok(Buffer.isBuffer(cipherText), 'ciphertext is a buffer')
