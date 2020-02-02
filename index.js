@@ -60,6 +60,10 @@ module.exports = {
     return verified ? shard : false
   },
 
+  removeSignature (signedShard) {
+    return signedShard.slice(sodium.crypto_sign_BYTES)
+  },
+
   encryptionKeypair () {
     const keypair = {
       publicKey: sodium.sodium_malloc(sodium.crypto_box_PUBLICKEYBYTES),
