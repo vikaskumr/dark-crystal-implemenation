@@ -43,6 +43,8 @@ describe('sign and verify', (context) => {
     keypair.publicKey[0] = keypair.publicKey[0] === 1 ? 2 : 1
     const verifiedShard = s.openShard(signedShard, keypair.publicKey)
     assert.false(verifiedShard, 'Shard could not be verified')
+    const unsignedShard = s.removeSignature(signedShard)
+    assert.equal(unsignedShard.toString('hex'), shard.toString('hex'), 'shard could anyway be recovered')
     next()
   })
 })
