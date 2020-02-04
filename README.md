@@ -18,9 +18,7 @@ See [example.js](./example.js)
 
 ## API
 
-```js
-const packed = packLabel(secret, label)
-```
+### `const packed = packLabel(secret, label)`
 
 Pack a secret together with a descriptive label, using a protocol buffer.
 - `secret` should be a buffer or a string.
