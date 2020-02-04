@@ -119,7 +119,7 @@ describe('one-way box and unbox', (context) => {
 
     const unboxed = s.oneWayUnbox(cipherText, recipient.secretKey)
     assert.ok(unboxed, 'Decryption successful')
-    assert.equal(unboxed.toString('hex'), shard.toString('hex'), 'Decrypted message correct')
+    assert.equal(unboxed.toString('hex'), Buffer.from(secret).toString('hex'), 'Decrypted message correct')
 
     const unboxed2 = s.oneWayUnbox(cipherText, sender.secretKey)
     assert.notOk(unboxed2, 'Sender cannot also decrypt message')
