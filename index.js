@@ -137,6 +137,7 @@ module.exports = {
     const cipherText = sodium.sodium_malloc(message.length + sodium.crypto_box_MACBYTES)
     sodium.crypto_box_easy(cipherText, message, nonce, curvePublicKey, ephemeral.secretKey)
     zero(ephemeral.secretKey)
+    zero(message)
     return Buffer.concat([nonce, ephemeral.publicKey, cipherText])
   },
 
