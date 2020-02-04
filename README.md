@@ -18,18 +18,24 @@ See [example.js](./example.js)
 
 ## API
 
-### `const packed = packLabel(secret, label)`
+### `packLabel` 
+
+`const packed = packLabel(secret, label)`
 
 Pack a secret together with a descriptive label, using a protocol buffer.
 - `secret` should be a buffer or a string.
 - `label` is an optional argument which if given should be a string containing some useful contextual information about the secret.
 - returns a buffer
 
+### `unpackLabel` 
+
 ```js
 const { secret, label } = unpackLabel(packed)
 ```
 - `packed` is a buffer created with `packLabel`
 - returns an object with properties `secret` and `label`, which will be a buffer and a string respectively. If no label was given, `label` will be the empty string.
+
+### `keypair`
 
 ```js
 const keypair = keypair()
@@ -38,6 +44,8 @@ const keypair = keypair()
 Generate a keypair for signing.
 
 - Returns a keypair object with properties `publicKey`, `secretKey` which are buffers.
+
+### `signShard`
 
 ```js
 const signedShard = signShard(shard, keypair)
@@ -49,6 +57,8 @@ Sign a message, and pack the signature together with the message.
 - `keypair` is either a keypair object or a secret key given as a buffer.
 - returns a buffer, which contains both the shard and the signature.
 
+### `openShard`
+
 ```js
 const verifiedShard = openShard (signedShard, publicKey)
 ```
@@ -59,6 +69,20 @@ Verify a signed message, and if valid return the message without the signature.
 - `signedShard` is a buffer
 - returns either a buffer with the verified shard, or false if the shard could not be verified
 
+### `removeSignature`
+
+```js
+const shard = removeSignature(signedShard)
+```
+Remove the signature component from a signed shard.
+
+This allows us to retrieve the shard data even if we were not able to validate it.
+
+- `signedShard` is a buffer.
+- returns a buffer.
+
+### `encryptionKeypair`
+
 ```js
 const boxKeypair = encryptionKeypair()
 ```
@@ -67,6 +91,8 @@ Generates a diffie-hellman asymmetric encryption keypair.
 Since the encryption functions given here derive encryption keys from signing keys internally, you should only need to use this for ephemeral encryption keys.
 
 - Returns an object with properties `publicKey`, `secretKey`, both of which are buffers.
+
+### `signingKeypairToEncryptionKeypair`
 
 ```js
 const boxKeypair = signingKeypairToEncryptionKeypair(keypair)
@@ -77,6 +103,8 @@ Since the encryption functions given here do this internally, you should not nee
 
 - `keypair` is a keypair object generated with `signingKeypair()`
 - returns a keypair object, with properties `publicKey` and `secretKey`
+
+### `box`
 
 ```js
 const cipherText = box(message, recipientPublicKey, senderSecretKey)
@@ -89,6 +117,8 @@ Encrypt a message to a specified recipient's key. The sender may also decrypt th
 - `senderSecretKey` - a buffer containing the signing secret key of the sender (ourself).
 - Returns the cipher text as a buffer.
 
+### `unbox`
+
 ```js
 const message = unbox(cipherText, senderPublicKey, recipientSecretKey)
 ```
@@ -98,6 +128,8 @@ Decrypt a message encrypted to your own key. Or attempt to decrypt a message in 
 - `senderPublicKey` - a buffer containing the public signing key of the author of the message.
 - `recipientSecretKey` - a buffer containing our own secret signing key. 
 - returns either `false` if the decryption was unsuccessful, or the decrypted message as a buffer.
+
+### `oneWayBox`
 
 ```js
 const cipherText = oneWayBox(message, publicKey)
@@ -109,6 +141,8 @@ Encrypt a message to a particular recipient such that only the recipient and not
 - `publicKey` - a buffer containing the public signing key of the recipient
 - returns a buffer containing the cipher text. Note that this will be 32 bytes longer than if it was created with `box`, since it also contains an ephemeral public key.
 
+### `oneWayUnbox`
+
 ```js
 const message = oneWayUnbox(cipherText, secretKey)
 ```
@@ -118,6 +152,8 @@ Decrypt a message encrypted with `oneWayBox`.
 - `secretKey` should be a buffer containing the secret signing key of the recipient.
 - Returns either `false` if the decryption was unsuccessful, or the decrypted message as a buffer.
 
+### `privateBox`
+
 ```js
 const cipherText = privateBox(message, publicKeys)
 ```
@@ -126,6 +162,8 @@ Encrypt a message to up to two recipients, without revealing who they are in the
 - `message` - should be a buffer of any length.
 - `publicKeys` - should be an array of up to two public signing keys. If a buffer is given, it will be interpreted as a single public key.
 - Returns a buffer.
+
+### `privateUnbox`
 
 ```js
 const plainText = privateUnbox(cipherText, secretKey)
