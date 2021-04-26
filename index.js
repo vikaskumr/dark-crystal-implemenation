@@ -129,12 +129,18 @@ module.exports = {
   },
 
   oneWayBox (message, publicKey) {
+    
     const curvePublicKey = sodium.sodium_malloc(sodium.crypto_box_PUBLICKEYBYTES)
-    sodium.crypto_sign_ed25519_pk_to_curve25519(curvePublicKey, publicKey)
+  
+   /* removed  sodium.crypto_sign_ed25519_pk_to_curve25519 Please check this link
+   https://stackoverflow.com/questions/67251547/encryption-using-libsodium-and-need-to-generate-public-and-private-keys-using-cr */
+
+   // sodium.crypto_sign_ed25519_pk_to_curve25519(curvePublicKey, publicKey)
 
     const ephemeral = this.encryptionKeypair()
     const nonce = this.randomBytes(sodium.crypto_box_NONCEBYTES)
     const cipherText = sodium.sodium_malloc(message.length + sodium.crypto_box_MACBYTES)
+  
     sodium.crypto_box_easy(cipherText, message, nonce, curvePublicKey, ephemeral.secretKey)
     zero(ephemeral.secretKey)
     zero(message)
@@ -143,7 +149,7 @@ module.exports = {
 
   oneWayUnbox (cipherText, secretKey) {
     const curveSecretKey = sodium.sodium_malloc(sodium.crypto_box_SECRETKEYBYTES)
-    sodium.crypto_sign_ed25519_sk_to_curve25519(curveSecretKey, secretKey)
+     sodium.crypto_sign_ed25519_sk_to_curve25519(curveSecretKey, secretKey)
 
     assert(Buffer.isBuffer(cipherText), 'cipherText must be a buffer')
     assert(cipherText.length > sodium.crypto_box_MACBYTES + sodium.crypto_box_PUBLICKEYBYTES + sodium.crypto_box_NONCEBYTES, 'cipherText too short')
